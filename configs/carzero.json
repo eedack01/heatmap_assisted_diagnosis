@@ -1,0 +1,33 @@
+{
+    "cuda_device": "0",
+    "cuda_value": "0",
+    "num_classes": 28,
+    "mixup": false,
+    "check_val_every_n_epoch": 1,
+    "image_size": 224,
+    "logs_path": "/storage/homefs/ed22q093/heatmap_assisted_diagnosis/logs/carzero",
+    "model_name": "carzero",
+    "data_type": "cropped",
+    "train": {
+        "mode": "train",
+        "image_folder": "/storage/homefs/ed22q093/heatmap_assisted_diagnosis/data/train",
+        "csv_path": "/storage/homefs/ed22q093/heatmap_assisted_diagnosis/data/image_labels_train.csv",
+        "batch_size": 64,
+        "learning_rate": 5e-4,
+        "num_epochs": 30,
+        "warm_up_epochs": 10,
+        "weight_decay": 1e-4,
+        "shuffle": true,
+        "num_workers": 4
+    },
+    "val": {
+        "mode": "val",
+        "image_folder": "/storage/homefs/ed22q093/heatmap_assisted_diagnosis/data/test",
+        "csv_path": "/storage/homefs/ed22q093/heatmap_assisted_diagnosis/data/image_labels_test.csv",
+        "batch_size": 64,
+        "shuffle": false,
+        "num_workers": 4
+    },
+    "test_size": 0.2,
+    "random_state": 42
+}
