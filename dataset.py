@@ -20,7 +20,7 @@ CLASS_NAMES = [
 XRAY_MEAN = [0.548959, 0.548959, 0.548959]
 XRAY_STD  = [0.268389, 0.268389, 0.268389]
 
-def get_transforms(mode="train", img_size=336):
+def get_transforms(mode="train", img_size=224, img_crop=224):
     """
     Args:
         mode: "train" or "val"
@@ -28,7 +28,7 @@ def get_transforms(mode="train", img_size=336):
     if mode == "train":
         return transforms.Compose([
             transforms.Resize((img_size, img_size)),
-            transforms.RandomCrop((224, 224)),
+            transforms.CenterCrop((img_crop, img_crop)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomRotation(15),
             # transforms.ColorJitter(brightness=0.2, contrast=0.2),
@@ -38,13 +38,14 @@ def get_transforms(mode="train", img_size=336):
     else:
         return transforms.Compose([
             transforms.Resize((img_size, img_size)),
+            transforms.CenterCrop((img_crop, img_crop)),
             transforms.ToTensor(),
             transforms.Normalize(mean=XRAY_MEAN, std=XRAY_STD),
         ])
 
 
 class ChestXrayDataset(Dataset):
-    def __init__(self, csv_path, images_dir, transform="train", img_size=224):
+    def __init__(self, csv_path, images_dir, transform="train", img_size=224, img_crop=224):
         """
         Args:
             csv_path   : path to csv file
@@ -58,7 +59,7 @@ class ChestXrayDataset(Dataset):
 
         # Accept either a mode string from the config or a pre-built transform
         if isinstance(transform, str):
-            self.transform = get_transforms(mode=transform, img_size=img_size)
+            self.transform = get_transforms(mode=transform, img_size=img_size, img_crop=img_crop)
         else:
             self.transform = transform
 

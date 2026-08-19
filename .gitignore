@@ -1,0 +1,23 @@
+# Ignore everything by default
+*
+
+# Allow traversal into these directories
+!/utils/
+!/configs/
+!/final/
+!/cxr_heatmap_reader_app/
+
+# Allow Python files and the README at the top level
+!/*.py
+!/README.md
+
+# Allow Python files (including nested) inside utils/ and configs/
+!/utils/**/*.py
+!/configs/**/*.py
+
+# Allow everything inside final/ and cxr_heatmap_reader_app/
+!/final/**
+!/cxr_heatmap_reader_app/**
+
+# Keep this file tracked
+!.gitignore

@@ -1,0 +1,56 @@
+# CXR Heatmap Reader Study: Quick Start
+
+This app is for research only. Do not use it for clinical diagnosis or patient care.
+
+## Before You Start
+
+Use a modern browser such as Chrome, Edge, Firefox, or Safari.
+
+Open this file:
+
+```text
+Open_CXR_Heatmap_Reader_Study.html
+```
+
+## Step 1: Enter Your Details
+
+1. Enter your Participant ID.
+2. Optionally enter your years of CXR experience, site/group, and session code.
+3. Select Start New Session.
+
+## Step 2: Review Each Case
+
+For each case, you will answer twice.
+
+First, using the chest X-ray only:
+
+1. Review the image.
+2. Select all diagnosis labels that apply.
+3. Select your confidence level from 1 to 5.
+4. Select Lock Initial Answer and Show Heatmaps.
+
+Then, after the heatmaps appear:
+
+1. Review the original chest X-ray and the three heatmaps.
+2. Select all diagnosis labels again.
+3. Select your confidence level again.
+4. Select any heatmaps that were helpful, or select None of the heatmaps were helpful.
+5. Select Save Answer and Continue.
+
+## Image Viewing
+
+Use the Open button above an image to view it larger. Select Close, press Escape, or click outside the image to return to the case.
+
+## If You Need To Pause
+
+The app saves progress in the browser on the same computer.
+
+To continue later:
+
+1. Open `Open_CXR_Heatmap_Reader_Study.html` again on the same computer and in the same browser.
+2. The app will automatically continue from the saved session.
+
+## When You Finish
+
+1. Select Export CSV.
+2. Send the exported CSV file to the study coordinator.

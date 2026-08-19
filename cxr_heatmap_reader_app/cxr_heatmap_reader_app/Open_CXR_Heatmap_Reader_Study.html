@@ -1,0 +1,1359 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CXR Heatmap Reader Study</title>
+  <script src="manifest.js"></script>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #d8dee9;
+      --accent: #2457c5;
+      --accent-dark: #1d459e;
+      --danger: #b42318;
+      --ok: #16784f;
+      --shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.5;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(8px);
+    }
+
+    .header-inner {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .title-block h1 {
+      font-size: 20px;
+      margin: 0;
+      letter-spacing: -0.01em;
+    }
+
+    .title-block p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    main {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 22px 20px 40px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 18px;
+    }
+
+    .card h2, .card h3 {
+      margin-top: 0;
+      letter-spacing: -0.01em;
+    }
+
+    .notice {
+      background: #eef4ff;
+      border: 1px solid #c7d7ff;
+      color: #173b85;
+      padding: 12px 14px;
+      border-radius: 12px;
+      margin: 12px 0;
+      font-size: 14px;
+    }
+
+    .warning {
+      background: #fff8e6;
+      border: 1px solid #f1d48b;
+      color: #6b4d00;
+    }
+
+    .success {
+      background: #ecfdf3;
+      border: 1px solid #b8e6c9;
+      color: #12543b;
+    }
+
+    .danger-text { color: var(--danger); }
+    .muted { color: var(--muted); }
+    .small { font-size: 13px; }
+
+    label {
+      display: block;
+      font-weight: 650;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    select:focus, input:focus, textarea:focus, button:focus-visible {
+      outline: 3px solid rgba(36, 87, 197, 0.22);
+      border-color: var(--accent);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .form-field { margin-bottom: 16px; }
+
+    .button {
+      border: 0;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.08s ease, background 0.08s ease;
+      font-size: 14px;
+    }
+
+    .button:hover { background: var(--accent-dark); }
+    .button:active { transform: translateY(1px); }
+    .button.secondary {
+      background: #f3f4f6;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .button.secondary:hover { background: #e9edf3; }
+    .button.danger {
+      background: #fff1f0;
+      color: var(--danger);
+      border: 1px solid #ffccc7;
+    }
+    .button.danger:hover { background: #ffe4e1; }
+    .button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .progress-wrap {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .progress-row {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+
+    .progress-bar {
+      height: 10px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-bar > div {
+      height: 100%;
+      width: 0;
+      background: var(--accent);
+      border-radius: 999px;
+    }
+
+    .case-layout {
+      display: grid;
+      grid-template-columns: minmax(380px, 1.4fr) minmax(320px, 0.8fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(280px, 1fr));
+      gap: 14px;
+    }
+
+    .image-grid.single {
+      grid-template-columns: minmax(320px, 1fr);
+    }
+
+    figure.image-panel {
+      margin: 0;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: #0b1020;
+    }
+
+    .image-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+      color: #f9fafb;
+      background: #111827;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .image-toolbar button {
+      border: 1px solid #4b5563;
+      background: #1f2937;
+      color: #fff;
+      border-radius: 8px;
+      padding: 5px 8px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .image-panel img {
+      display: block;
+      width: 100%;
+      max-height: 70vh;
+      object-fit: contain;
+      background: #0b1020;
+      cursor: zoom-in;
+    }
+
+    .locked-summary {
+      border: 1px solid #c7d7ff;
+      background: #f5f8ff;
+      padding: 12px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+
+    .radio-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .radio-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      background: #fff;
+      font-weight: 500;
+    }
+
+    .radio-item:hover { background: #f9fafb; }
+    .radio-item input { margin: 0; }
+    .diagnosis-list {
+      max-height: 46vh;
+      overflow-y: auto;
+      padding-right: 2px;
+    }
+
+    .phase-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #273a8a;
+      font-weight: 750;
+      font-size: 12px;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+    }
+
+    .meta-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 13px;
+      margin: 8px 0 0;
+    }
+
+    .split-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .footer-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      background: rgba(0, 0, 0, 0.92);
+      align-items: center;
+      justify-content: center;
+      padding: 28px;
+    }
+
+    .modal.open { display: flex; }
+    .modal img {
+      max-width: 96vw;
+      max-height: 92vh;
+      object-fit: contain;
+      box-shadow: 0 16px 50px rgba(0,0,0,0.5);
+    }
+
+    .modal button {
+      position: fixed;
+      right: 22px;
+      top: 18px;
+      background: #fff;
+      color: #111827;
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 42px 22px;
+    }
+
+    .completion-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(180px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+
+    .stat-box {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      background: #fff;
+    }
+
+    .stat-box strong {
+      display: block;
+      font-size: 28px;
+      line-height: 1.1;
+    }
+
+    .error-box {
+      background: #fff1f0;
+      border: 1px solid #ffa39e;
+      color: var(--danger);
+      padding: 12px;
+      border-radius: 12px;
+      margin: 12px 0;
+    }
+
+    @media (max-width: 980px) {
+      .case-layout { grid-template-columns: 1fr; }
+      .image-grid { grid-template-columns: 1fr; }
+      .form-grid, .completion-grid { grid-template-columns: 1fr; }
+      .header-inner { align-items: flex-start; flex-direction: column; }
+      .top-actions { justify-content: flex-start; }
+    }
+
+    @media print {
+      header, .top-actions, .button, .modal { display: none !important; }
+      body { background: #fff; }
+      .card { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="title-block">
+        <h1 id="appTitle">CXR Heatmap Reader Study</h1>
+        <p id="appSubtitle">Offline browser-based research interface</p>
+      </div>
+      <div class="top-actions" id="topActions"></div>
+    </div>
+  </header>
+
+  <main id="app"></main>
+
+  <div class="modal" id="imageModal" aria-hidden="true">
+    <button type="button" id="closeModal">Close</button>
+    <img id="modalImage" alt="Expanded study image" />
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const CONFIG = window.APP_CONFIG || {};
+      const STORAGE_KEY = `cxr_heatmap_reader:${CONFIG.studyId || "default_study"}`;
+      const CONFIDENCE_LEVELS = CONFIG.confidenceLevels || [
+        { value: "1", label: "1 - Very unsure" },
+        { value: "2", label: "2 - Somewhat unsure" },
+        { value: "3", label: "3 - Moderately confident" },
+        { value: "4", label: "4 - Confident" },
+        { value: "5", label: "5 - Very confident" }
+      ];
+      const app = document.getElementById("app");
+      const topActions = document.getElementById("topActions");
+      const modal = document.getElementById("imageModal");
+      const modalImage = document.getElementById("modalImage");
+      const closeModal = document.getElementById("closeModal");
+      const casesById = new Map((CONFIG.cases || []).map(c => [c.case_id, c]));
+      let state = null;
+
+      function init() {
+        document.getElementById("appTitle").textContent = CONFIG.studyTitle || "CXR Heatmap Reader Study";
+        document.getElementById("appSubtitle").textContent = CONFIG.studySubtitle || "Offline browser-based research interface";
+        closeModal.addEventListener("click", closeImageModal);
+        modal.addEventListener("click", function (event) {
+          if (event.target === modal) closeImageModal();
+        });
+        document.addEventListener("keydown", function (event) {
+          if (event.key === "Escape") closeImageModal();
+        });
+        loadState();
+        if (state && state.participant && state.caseOrder && state.caseOrder.length) {
+          renderStudy();
+        } else {
+          renderStart();
+        }
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.studyId === (CONFIG.studyId || "default_study")) {
+            const hadAppVersion = Object.prototype.hasOwnProperty.call(parsed, "appVersion");
+            delete parsed.appVersion;
+            state = parsed;
+            if (hadAppVersion) {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            }
+          }
+        } catch (error) {
+          console.warn("Could not load saved state", error);
+          state = null;
+        }
+      }
+
+      function saveState() {
+        if (!state) return;
+        state.lastSavedAt = nowIso();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function nowIso() {
+        return new Date().toISOString();
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function hashString(text) {
+        let h = 2166136261;
+        for (let i = 0; i < text.length; i++) {
+          h ^= text.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return h >>> 0;
+      }
+
+      function mulberry32(seed) {
+        return function () {
+          let t = seed += 0x6D2B79F5;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function shuffleCopy(items, rng) {
+        const arr = items.slice();
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(rng() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      }
+
+      function shouldAskHelpfulHeatmaps() {
+        if (Object.prototype.hasOwnProperty.call(CONFIG, "askHelpfulHeatmaps")) {
+          return CONFIG.askHelpfulHeatmaps !== false;
+        }
+        // Backward compatibility with v1.1 manifest files.
+        return CONFIG.askMostHelpfulHeatmap === true;
+      }
+
+      function createState(participant) {
+        const seedText = [CONFIG.studyId || "default_study", participant.participantId, participant.sessionCode || ""].join("|");
+        const rng = mulberry32(hashString(seedText));
+        let caseIds = (CONFIG.cases || []).map(c => c.case_id);
+        if (CONFIG.randomizeCaseOrder !== false) {
+          caseIds = shuffleCopy(caseIds, rng);
+        }
+        const heatmapOrders = {};
+        for (const c of CONFIG.cases || []) {
+          const heatmaps = c.heatmaps || [];
+          let ordered = heatmaps.map(h => h.model_id);
+          if (CONFIG.randomizeHeatmapOrder !== false) {
+            ordered = shuffleCopy(ordered, rng);
+          }
+          heatmapOrders[c.case_id] = ordered;
+        }
+        return {
+          studyId: CONFIG.studyId || "default_study",
+          studyTitle: CONFIG.studyTitle || "CXR Heatmap Reader Study",
+          participant,
+          createdAt: nowIso(),
+          lastSavedAt: nowIso(),
+          caseOrder: caseIds,
+          currentIndex: 0,
+          heatmapOrders,
+          responses: {}
+        };
+      }
+
+      function renderStart() {
+        topActions.innerHTML = "";
+        const saved = state && state.participant;
+        app.innerHTML = `
+          <section class="card">
+            <h2>Reader Information</h2>
+            <p class="muted">This interface runs locally in the browser. Study responses are saved in this browser and exported manually as CSV or JSON.</p>
+            <div class="notice warning"><strong>Research use only.</strong> Do not use this interface for clinical diagnosis or patient care.</div>
+            ${validateConfigMessage()}
+            ${saved ? `<div class="notice success"><strong>Saved session found.</strong> Participant: ${escapeHtml(state.participant.participantId)}. You can resume it or start a new session.</div>` : ""}
+            <form id="startForm">
+              <div class="form-grid">
+                <div class="form-field">
+                  <label for="participantId">Participant ID <span class="danger-text">*</span></label>
+                  <input id="participantId" type="text" autocomplete="off" required placeholder="e.g., R001" />
+                </div>
+                <div class="form-field">
+                  <label for="experienceYears">Years of CXR experience</label>
+                  <input id="experienceYears" type="number" min="0" step="0.5" placeholder="Optional" />
+                </div>
+                <div class="form-field">
+                  <label for="siteCode">Site / group</label>
+                  <input id="siteCode" type="text" autocomplete="off" placeholder="Optional" />
+                </div>
+              </div>
+              <div class="form-field">
+                <label for="sessionCode">Session code</label>
+                <input id="sessionCode" type="text" autocomplete="off" placeholder="Optional; use this to repeat a deterministic order" />
+              </div>
+              <div class="notice">
+                <strong>Task:</strong> For each case, first select all applicable diagnosis labels and provide a 5-point confidence rating using the chest X-ray only. After that answer is locked, review three heatmaps in randomized order, select all applicable diagnosis labels and rate confidence again, and select all heatmaps that were helpful, or choose that none were helpful.
+              </div>
+              <div class="split-actions">
+                <div class="footer-actions">
+                  <button class="button" type="submit">Start New Session</button>
+                  ${saved ? `<button class="button secondary" type="button" id="resumeButton">Resume Saved Session</button>` : ""}
+                </div>
+                ${saved ? `<button class="button danger" type="button" id="clearButton">Clear Saved Session</button>` : ""}
+              </div>
+            </form>
+          </section>
+        `;
+
+        const startForm = document.getElementById("startForm");
+        startForm.addEventListener("submit", function (event) {
+          event.preventDefault();
+          const participantId = document.getElementById("participantId").value.trim();
+          if (!participantId) return;
+          const participant = {
+            participantId,
+            experienceYears: document.getElementById("experienceYears").value.trim(),
+            siteCode: document.getElementById("siteCode").value.trim(),
+            sessionCode: document.getElementById("sessionCode").value.trim()
+          };
+          state = createState(participant);
+          saveState();
+          renderStudy();
+        });
+
+        const resumeButton = document.getElementById("resumeButton");
+        if (resumeButton) {
+          resumeButton.addEventListener("click", function () {
+            renderStudy();
+          });
+        }
+
+        const clearButton = document.getElementById("clearButton");
+        if (clearButton) {
+          clearButton.addEventListener("click", function () {
+            if (confirm("Clear the saved session from this browser? Export first if you need to keep the responses.")) {
+              localStorage.removeItem(STORAGE_KEY);
+              state = null;
+              renderStart();
+            }
+          });
+        }
+      }
+
+      function validateConfigMessage() {
+        if (!CONFIG.cases || !CONFIG.cases.length) {
+          return `<div class="error-box"><strong>No cases configured.</strong> Add cases to manifest.js before starting the study.</div>`;
+        }
+        if (!CONFIG.labels || !CONFIG.labels.length) {
+          return `<div class="error-box"><strong>No labels configured.</strong> Add diagnosis labels to manifest.js before starting the study.</div>`;
+        }
+        return "";
+      }
+
+      function renderTopActions() {
+        if (!state) {
+          topActions.innerHTML = "";
+          return;
+        }
+        topActions.innerHTML = `
+          <button class="button secondary" type="button" id="exportCsvTop">Export CSV</button>
+          <button class="button secondary" type="button" id="exportJsonTop">Export JSON</button>
+          <button class="button danger" type="button" id="resetTop">Reset</button>
+        `;
+        document.getElementById("exportCsvTop").addEventListener("click", exportCsv);
+        document.getElementById("exportJsonTop").addEventListener("click", exportJson);
+        document.getElementById("resetTop").addEventListener("click", function () {
+          if (confirm("Reset this study session in the browser? Export first if you need to keep the responses.")) {
+            localStorage.removeItem(STORAGE_KEY);
+            state = null;
+            renderStart();
+          }
+        });
+      }
+
+      function ensureCaseResponse(caseId, caseOrderNumber) {
+        if (!state.responses[caseId]) {
+          state.responses[caseId] = {
+            case_id: caseId,
+            case_order: caseOrderNumber,
+            first_opened_at: nowIso(),
+            initial_started_at: nowIso()
+          };
+          saveState();
+        }
+        return state.responses[caseId];
+      }
+
+      function getCurrentCaseId() {
+        if (!state || !state.caseOrder) return null;
+        if (state.currentIndex >= state.caseOrder.length) return null;
+        return state.caseOrder[state.currentIndex];
+      }
+
+      function advanceToNextIncomplete() {
+        for (let i = 0; i < state.caseOrder.length; i++) {
+          const caseId = state.caseOrder[i];
+          const r = state.responses[caseId];
+          if (!r || !r.post) {
+            state.currentIndex = i;
+            saveState();
+            return true;
+          }
+        }
+        state.currentIndex = state.caseOrder.length;
+        saveState();
+        return false;
+      }
+
+      function renderStudy() {
+        if (!state) return renderStart();
+        renderTopActions();
+        advanceToNextIncomplete();
+        if (state.currentIndex >= state.caseOrder.length) {
+          renderCompletion();
+          return;
+        }
+        const caseId = getCurrentCaseId();
+        const studyCase = casesById.get(caseId);
+        if (!studyCase) {
+          app.innerHTML = `<div class="error-box">Case ${escapeHtml(caseId)} is present in saved state but missing from manifest.js.</div>`;
+          return;
+        }
+        const caseOrderNumber = state.currentIndex + 1;
+        const response = ensureCaseResponse(caseId, caseOrderNumber);
+        const total = state.caseOrder.length;
+        const completedCount = Object.values(state.responses).filter(r => r && r.post).length;
+        const progressPct = total ? Math.round((completedCount / total) * 100) : 0;
+        const phase = response.initial ? "Heatmap-assisted interpretation" : "Initial interpretation";
+        const heatmapPanels = response.initial ? renderHeatmapImages(studyCase) : renderOriginalImage(studyCase, true);
+
+        app.innerHTML = `
+          <section class="progress-wrap">
+            <div class="progress-row">
+              <div><strong>Case ${caseOrderNumber} of ${total}</strong> · ${completedCount} completed · Participant ${escapeHtml(state.participant.participantId)}</div>
+              <div class="small muted">Last saved: ${escapeHtml(state.lastSavedAt || "Not saved yet")}</div>
+            </div>
+            <div class="progress-bar" aria-label="Study progress"><div style="width: ${progressPct}%"></div></div>
+          </section>
+
+          <section class="card">
+            <span class="phase-pill">${escapeHtml(phase)}</span>
+            <h2 style="margin-top: 10px;">Case ${caseOrderNumber}</h2>
+            <div class="meta-row">
+              <span>Case ID: ${escapeHtml(studyCase.case_id)}</span>
+              <span>${response.initial ? "Heatmaps are visible" : "Chest X-ray only"}</span>
+            </div>
+          </section>
+
+          <section class="case-layout">
+            <div class="card">
+              <h3>${response.initial ? "Images" : "Chest X-ray"}</h3>
+              ${heatmapPanels}
+            </div>
+            <div class="card">
+              ${response.initial ? renderPostForm(response) : renderInitialForm()}
+            </div>
+          </section>
+        `;
+        wireImageButtons();
+        if (response.initial) {
+          wirePostForm(caseId);
+        } else {
+          wireInitialForm(caseId);
+        }
+      }
+
+      function renderOriginalImage(studyCase, single) {
+        return `<div class="image-grid ${single ? "single" : ""}">${imagePanel("Original CXR", studyCase.cxr, "Original chest X-ray")}</div>`;
+      }
+
+      function renderHeatmapImages(studyCase) {
+        const heatmaps = studyCase.heatmaps || [];
+        const order = state.heatmapOrders[studyCase.case_id] || heatmaps.map(h => h.model_id);
+        const byModel = new Map(heatmaps.map(h => [h.model_id, h]));
+        const panels = [imagePanel("Original CXR", studyCase.cxr, "Original chest X-ray")];
+        order.forEach((modelId, idx) => {
+          const h = byModel.get(modelId);
+          if (!h) return;
+          const slotLabel = CONFIG.blindModelNames === false
+            ? (h.display_name || h.model_id)
+            : `Heatmap ${idx + 1}`;
+          panels.push(imagePanel(slotLabel, h.src, `Grad-CAM heatmap ${idx + 1}`));
+        });
+        return `<div class="image-grid">${panels.join("")}</div>`;
+      }
+
+      function imagePanel(title, src, alt) {
+        const safeSrc = escapeHtml(src || "");
+        return `
+          <figure class="image-panel">
+            <div class="image-toolbar">
+              <span>${escapeHtml(title)}</span>
+              <button type="button" data-open-image="${safeSrc}">Open</button>
+            </div>
+            <img src="${safeSrc}" alt="${escapeHtml(alt)}" data-open-image="${safeSrc}" onerror="this.closest('figure').querySelector('.image-toolbar span').textContent += ' — image not found'; this.style.opacity='0.25';" />
+          </figure>
+        `;
+      }
+
+      function renderInitialForm() {
+        return `
+          <h3>Initial diagnosis</h3>
+          <p class="muted">Use the chest X-ray only. Your initial answer will be locked before heatmaps are shown.</p>
+          <form id="initialForm">
+            ${diagnosisCheckboxes("initialDiagnoses", "Diagnosis labels")}
+            ${confidenceRadios("initialConfidence", "Confidence")}
+            <div class="split-actions">
+              <button class="button" type="submit">Lock Initial Answer and Show Heatmaps</button>
+            </div>
+          </form>
+        `;
+      }
+
+      function renderPostForm(response) {
+        const initialDiag = response.initial ? diagnosisDisplayText(response.initial) : "";
+        const initialConf = response.initial ? confidenceLabel(response.initial.confidence) : "";
+        return `
+          <h3>After reviewing heatmaps</h3>
+          <div class="locked-summary">
+            <strong>Locked initial answer</strong><br />
+            Diagnosis labels: ${escapeHtml(initialDiag)}<br />
+            Confidence: ${escapeHtml(initialConf)}
+          </div>
+          <p class="muted">Review the original CXR and all heatmaps, then provide your final answer for this case.</p>
+          <form id="postForm">
+            ${diagnosisCheckboxes("postDiagnoses", "Diagnosis labels after heatmaps")}
+            ${confidenceRadios("postConfidence", "Confidence after heatmaps")}
+            ${shouldAskHelpfulHeatmaps() ? helpfulHeatmapCheckboxes(response.case_id) : ""}
+            <div class="split-actions">
+              <button class="button" type="submit">Save Answer and Continue</button>
+            </div>
+          </form>
+        `;
+      }
+
+      function diagnosisCheckboxes(name, label) {
+        const labels = CONFIG.labels || [];
+        const exclusiveLabels = getDiagnosisExclusiveLabels();
+        const hasExclusiveLabel = labels.some(v => exclusiveLabels.has(v));
+        const items = labels.map(v => {
+          const isExclusive = exclusiveLabels.has(v);
+          return `
+            <label class="radio-item">
+              <input type="checkbox" name="${escapeHtml(name)}" value="${escapeHtml(v)}" data-diagnosis-exclusive="${isExclusive ? "true" : "false"}" />
+              <span>${escapeHtml(v)}</span>
+            </label>
+          `;
+        }).join("");
+        return `
+          <div class="form-field">
+            <label>${escapeHtml(label)} <span class="danger-text">*</span></label>
+            <div class="radio-list diagnosis-list">${items}</div>
+            <p class="small muted">Select all applicable labels.${hasExclusiveLabel ? " The exclusive normal/no-finding option cannot be combined with other labels." : ""}</p>
+          </div>
+        `;
+      }
+
+      function getDiagnosisExclusiveLabels() {
+        const configured = Array.isArray(CONFIG.diagnosisExclusiveLabels)
+          ? CONFIG.diagnosisExclusiveLabels
+          : ["No finding"];
+        return new Set(configured.map(v => String(v)));
+      }
+
+      function wireDiagnosisCheckboxes(name) {
+        const boxes = Array.from(document.querySelectorAll(`input[name="${CSS.escape(name)}"]`));
+        const exclusiveBoxes = boxes.filter(box => box.dataset.diagnosisExclusive === "true");
+        boxes.forEach(box => {
+          box.addEventListener("change", function () {
+            if (!box.checked) return;
+            if (box.dataset.diagnosisExclusive === "true") {
+              boxes.forEach(other => {
+                if (other !== box) other.checked = false;
+              });
+            } else {
+              exclusiveBoxes.forEach(exclusiveBox => { exclusiveBox.checked = false; });
+            }
+          });
+        });
+      }
+
+      function confidenceRadios(name, label) {
+        const items = CONFIDENCE_LEVELS.map(level => `
+          <label class="radio-item">
+            <input type="radio" name="${escapeHtml(name)}" value="${escapeHtml(level.value)}" required />
+            <span>${escapeHtml(level.label)}</span>
+          </label>
+        `).join("");
+        return `
+          <div class="form-field">
+            <label>${escapeHtml(label)} <span class="danger-text">*</span></label>
+            <div class="radio-list">${items}</div>
+          </div>
+        `;
+      }
+
+      function helpfulHeatmapCheckboxes(caseId) {
+        const order = state.heatmapOrders[caseId] || [];
+        const items = order.map((modelId, idx) => `
+          <label class="radio-item">
+            <input type="checkbox" name="helpfulHeatmaps" data-kind="heatmap" value="heatmap_${idx + 1}|${escapeHtml(modelId)}" />
+            <span>Heatmap ${idx + 1}</span>
+          </label>
+        `).join("");
+        return `
+          <div class="form-field">
+            <label>Helpful heatmaps <span class="danger-text">*</span></label>
+            <div class="radio-list">
+              ${items}
+              <label class="radio-item">
+                <input type="checkbox" id="helpfulHeatmapNone" name="helpfulHeatmaps" data-kind="none" value="none|none" />
+                <span>None of the heatmaps were helpful</span>
+              </label>
+            </div>
+            <p class="small muted">Select all heatmaps that helped your final answer. The “None” option is mutually exclusive with heatmap selections.</p>
+          </div>
+        `;
+      }
+
+      function wireHelpfulHeatmapCheckboxes() {
+        const noneBox = document.getElementById("helpfulHeatmapNone");
+        const heatmapBoxes = Array.from(document.querySelectorAll('input[name="helpfulHeatmaps"][data-kind="heatmap"]'));
+        if (noneBox) {
+          noneBox.addEventListener("change", function () {
+            if (noneBox.checked) {
+              heatmapBoxes.forEach(box => { box.checked = false; });
+            }
+          });
+        }
+        heatmapBoxes.forEach(box => {
+          box.addEventListener("change", function () {
+            if (box.checked && noneBox) {
+              noneBox.checked = false;
+            }
+          });
+        });
+      }
+
+      function parseHelpfulHeatmapValues(values) {
+        const selected = Array.isArray(values) ? values : [];
+        if (!selected.length) {
+          return { valid: false, choices: [], slots: [], labels: [], modelIds: [], noneSelected: false, count: 0 };
+        }
+        const includesNone = selected.some(value => String(value).startsWith("none|"));
+        if (includesNone) {
+          return {
+            valid: true,
+            choices: ["none"],
+            slots: ["none"],
+            labels: ["None of the heatmaps were helpful"],
+            modelIds: ["none"],
+            noneSelected: true,
+            count: 0
+          };
+        }
+        const parsed = selected.map(value => {
+          const [choice, modelId] = String(value).split("|");
+          const slot = choice.replace("heatmap_", "");
+          return {
+            choice,
+            slot,
+            label: `Heatmap ${slot}`,
+            modelId: modelId || ""
+          };
+        }).filter(item => item.choice && item.slot);
+        return {
+          valid: parsed.length > 0,
+          choices: parsed.map(item => item.choice),
+          slots: parsed.map(item => item.slot),
+          labels: parsed.map(item => item.label),
+          modelIds: parsed.map(item => item.modelId),
+          noneSelected: false,
+          count: parsed.length
+        };
+      }
+
+      function checkedValues(name) {
+        return Array.from(document.querySelectorAll(`input[name="${CSS.escape(name)}"]:checked`)).map(el => el.value);
+      }
+
+      function listFromMaybeArray(value) {
+        if (Array.isArray(value)) return value;
+        if (value === undefined || value === null || value === "") return [];
+        return String(value).split(/[;,]/).map(v => v.trim()).filter(Boolean);
+      }
+
+      function helpfulHeatmapExportFields(post, order) {
+        if (!post) {
+          return { choices: "", slots: "", labels: "", modelIds: "", noneSelected: "", count: "" };
+        }
+        if (post.helpful_heatmap_choices || post.helpful_heatmap_slots || post.helpful_heatmap_model_ids) {
+          const choices = listFromMaybeArray(post.helpful_heatmap_choices);
+          const slots = listFromMaybeArray(post.helpful_heatmap_slots);
+          const labels = listFromMaybeArray(post.helpful_heatmap_labels);
+          const modelIds = listFromMaybeArray(post.helpful_heatmap_model_ids);
+          const noneSelected = post.helpful_heatmap_none_selected === true || post.helpful_heatmap_none_selected === "true" || choices.includes("none") || modelIds.includes("none");
+          return {
+            choices: choices.join(";"),
+            slots: slots.join(";"),
+            labels: labels.join(";"),
+            modelIds: modelIds.join(";"),
+            noneSelected: String(noneSelected),
+            count: noneSelected ? "0" : String(modelIds.filter(x => x && x !== "none").length)
+          };
+        }
+        // Backward compatibility with v1.1 sessions that stored a single most-helpful heatmap.
+        if (post.most_helpful_heatmap_choice || post.most_helpful_heatmap_slot || post.most_helpful_heatmap_model_id) {
+          const choice = post.most_helpful_heatmap_choice || "";
+          const slot = post.most_helpful_heatmap_slot || "";
+          const label = post.most_helpful_heatmap_label || "";
+          const modelId = post.most_helpful_heatmap_model_id || "";
+          const noneSelected = choice === "none" || modelId === "none";
+          return {
+            choices: choice,
+            slots: slot,
+            labels: label,
+            modelIds: modelId,
+            noneSelected: String(noneSelected),
+            count: noneSelected ? "0" : (modelId ? "1" : "")
+          };
+        }
+        // Backward compatibility with v1.0 sessions where the stored value was a model_id or "none".
+        const legacy = post.most_helpful_heatmap || "";
+        if (!legacy) return { choices: "", slots: "", labels: "", modelIds: "", noneSelected: "", count: "" };
+        if (legacy === "none") {
+          return { choices: "none", slots: "none", labels: "None of the heatmaps were helpful", modelIds: "none", noneSelected: "true", count: "0" };
+        }
+        const idx = (order || []).indexOf(legacy);
+        const slot = idx >= 0 ? String(idx + 1) : "";
+        return {
+          choices: slot ? `heatmap_${slot}` : "",
+          slots: slot,
+          labels: slot ? `Heatmap ${slot}` : "",
+          modelIds: legacy,
+          noneSelected: "false",
+          count: legacy ? "1" : ""
+        };
+      }
+
+      function diagnosisListFromAnswer(answer) {
+        if (!answer) return [];
+        if (Array.isArray(answer.diagnoses)) {
+          return answer.diagnoses.map(v => String(v).trim()).filter(Boolean);
+        }
+        if (Array.isArray(answer.diagnosis_labels)) {
+          return answer.diagnosis_labels.map(v => String(v).trim()).filter(Boolean);
+        }
+        if (answer.diagnoses) {
+          return listFromMaybeArray(answer.diagnoses);
+        }
+        if (answer.diagnosis) {
+          return listFromMaybeArray(answer.diagnosis);
+        }
+        return [];
+      }
+
+      function diagnosisDisplayText(answer) {
+        return diagnosisListFromAnswer(answer).join("; ");
+      }
+
+      function sameStringSet(a, b) {
+        if (a.size !== b.size) return false;
+        for (const value of a) {
+          if (!b.has(value)) return false;
+        }
+        return true;
+      }
+
+      function diagnosisLabelColumnDefinitions() {
+        const used = new Map();
+        return (CONFIG.labels || []).map(label => {
+          let column = slugifyLabel(label) || "label";
+          const seen = used.get(column) || 0;
+          used.set(column, seen + 1);
+          if (seen > 0) column = `${column}_${seen + 1}`;
+          return { label, column };
+        });
+      }
+
+      function slugifyLabel(value) {
+        return String(value || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "_")
+          .replace(/^_+|_+$/g, "")
+          .slice(0, 64);
+      }
+
+      function confidenceLabel(value) {
+        const item = CONFIDENCE_LEVELS.find(x => x.value === value);
+        return item ? item.label : value;
+      }
+
+      function wireInitialForm(caseId) {
+        const form = document.getElementById("initialForm");
+        wireDiagnosisCheckboxes("initialDiagnoses");
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          const response = state.responses[caseId];
+          const diagnoses = checkedValues("initialDiagnoses");
+          const confidence = checkedValue("initialConfidence");
+          if (!diagnoses.length) {
+            alert("Please select at least one diagnosis label.");
+            return;
+          }
+          if (!confidence) return;
+          const submittedAt = nowIso();
+          response.initial = {
+            diagnoses,
+            diagnosis: diagnoses.join("; "),
+            confidence,
+            submitted_at: submittedAt,
+            response_time_ms: msBetween(response.initial_started_at, submittedAt)
+          };
+          response.assisted_started_at = nowIso();
+          saveState();
+          renderStudy();
+        });
+      }
+
+      function wirePostForm(caseId) {
+        const form = document.getElementById("postForm");
+        wireDiagnosisCheckboxes("postDiagnoses");
+        if (shouldAskHelpfulHeatmaps()) {
+          wireHelpfulHeatmapCheckboxes();
+        }
+        form.addEventListener("submit", function (event) {
+          event.preventDefault();
+          const response = state.responses[caseId];
+          const diagnoses = checkedValues("postDiagnoses");
+          const confidence = checkedValue("postConfidence");
+          if (!diagnoses.length) {
+            alert("Please select at least one diagnosis label after reviewing the heatmaps.");
+            return;
+          }
+          if (!confidence) return;
+          const submittedAt = nowIso();
+          let helpful = null;
+          if (shouldAskHelpfulHeatmaps()) {
+            helpful = parseHelpfulHeatmapValues(checkedValues("helpfulHeatmaps"));
+            if (!helpful.valid) {
+              alert("Please select at least one helpful heatmap, or choose ‘None of the heatmaps were helpful.’");
+              return;
+            }
+          }
+          response.post = {
+            diagnoses,
+            diagnosis: diagnoses.join("; "),
+            confidence,
+            submitted_at: submittedAt,
+            response_time_ms: msBetween(response.assisted_started_at, submittedAt)
+          };
+          if (helpful) {
+            response.post.helpful_heatmap_choices = helpful.choices;
+            response.post.helpful_heatmap_slots = helpful.slots;
+            response.post.helpful_heatmap_labels = helpful.labels;
+            response.post.helpful_heatmap_model_ids = helpful.modelIds;
+            response.post.helpful_heatmap_none_selected = helpful.noneSelected;
+            response.post.helpful_heatmap_count = helpful.count;
+          }
+          state.currentIndex += 1;
+          saveState();
+          renderStudy();
+        });
+      }
+
+      function checkedValue(name) {
+        const checked = document.querySelector(`input[name="${CSS.escape(name)}"]:checked`);
+        return checked ? checked.value : "";
+      }
+
+      function msBetween(startIso, endIso) {
+        const start = Date.parse(startIso);
+        const end = Date.parse(endIso);
+        if (!Number.isFinite(start) || !Number.isFinite(end)) return "";
+        return Math.max(0, end - start);
+      }
+
+      function wireImageButtons() {
+        document.querySelectorAll("[data-open-image]").forEach(el => {
+          el.addEventListener("click", function () {
+            const src = this.getAttribute("data-open-image");
+            openImageModal(src);
+          });
+        });
+      }
+
+      function openImageModal(src) {
+        if (!src) return;
+        modalImage.src = src;
+        modal.classList.add("open");
+        modal.setAttribute("aria-hidden", "false");
+      }
+
+      function closeImageModal() {
+        modal.classList.remove("open");
+        modal.setAttribute("aria-hidden", "true");
+        modalImage.removeAttribute("src");
+      }
+
+      function renderCompletion() {
+        const rows = buildRows();
+        const completed = rows.filter(r => r.completed === "true").length;
+        app.innerHTML = `
+          <section class="card empty-state">
+            <h2>Study complete</h2>
+            <p class="muted">All configured cases have a locked initial answer and a heatmap-assisted answer.</p>
+            <div class="completion-grid">
+              <div class="stat-box"><strong>${completed}</strong><span>Completed cases</span></div>
+              <div class="stat-box"><strong>${state.caseOrder.length}</strong><span>Total cases</span></div>
+              <div class="stat-box"><strong>${escapeHtml(state.participant.participantId)}</strong><span>Participant ID</span></div>
+            </div>
+            <div class="footer-actions" style="justify-content: center;">
+              <button class="button" type="button" id="exportCsvDone">Export CSV</button>
+              <button class="button secondary" type="button" id="exportJsonDone">Export JSON</button>
+            </div>
+            <p class="small muted">Please send the exported file to the study coordinator using the approved secure transfer method.</p>
+          </section>
+        `;
+        document.getElementById("exportCsvDone").addEventListener("click", exportCsv);
+        document.getElementById("exportJsonDone").addEventListener("click", exportJson);
+      }
+
+      function buildRows() {
+        if (!state) return [];
+        const rows = [];
+        state.caseOrder.forEach((caseId, idx) => {
+          const c = casesById.get(caseId) || { case_id: caseId, cxr: "", heatmaps: [] };
+          const r = state.responses[caseId] || {};
+          const order = state.heatmapOrders[caseId] || [];
+          const heatmapsById = new Map((c.heatmaps || []).map(h => [h.model_id, h]));
+          const slots = [0, 1, 2].map(i => {
+            const modelId = order[i] || "";
+            const hm = heatmapsById.get(modelId) || {};
+            return { modelId, src: hm.src || "" };
+          });
+          const helpful = helpfulHeatmapExportFields(r.post, order);
+          const initialDiagnoses = diagnosisListFromAnswer(r.initial);
+          const postDiagnoses = diagnosisListFromAnswer(r.post);
+          const initialDiagnosisSet = new Set(initialDiagnoses);
+          const postDiagnosisSet = new Set(postDiagnoses);
+          const labelColumns = diagnosisLabelColumnDefinitions();
+          const row = {
+            study_id: state.studyId,
+            participant_id: state.participant.participantId || "",
+            experience_years: state.participant.experienceYears || "",
+            site_code: state.participant.siteCode || "",
+            session_code: state.participant.sessionCode || "",
+            session_created_at: state.createdAt || "",
+            case_id: caseId,
+            case_order: String(idx + 1),
+            cxr_path: c.cxr || "",
+            first_opened_at: r.first_opened_at || "",
+            initial_diagnoses: r.initial ? initialDiagnoses.join(";") : "",
+            initial_diagnosis_count: r.initial ? String(initialDiagnoses.length) : "",
+            initial_confidence: r.initial ? r.initial.confidence : "",
+            initial_confidence_label: r.initial ? confidenceLabel(r.initial.confidence) : "",
+            initial_submitted_at: r.initial ? r.initial.submitted_at : "",
+            initial_response_time_ms: r.initial ? String(r.initial.response_time_ms ?? "") : "",
+            assisted_started_at: r.assisted_started_at || "",
+            post_diagnoses: r.post ? postDiagnoses.join(";") : "",
+            post_diagnosis_count: r.post ? String(postDiagnoses.length) : "",
+            post_confidence: r.post ? r.post.confidence : "",
+            post_confidence_label: r.post ? confidenceLabel(r.post.confidence) : "",
+            post_submitted_at: r.post ? r.post.submitted_at : "",
+            post_response_time_ms: r.post ? String(r.post.response_time_ms ?? "") : "",
+            diagnosis_set_changed: r.initial && r.post ? String(!sameStringSet(initialDiagnosisSet, postDiagnosisSet)) : "",
+            confidence_changed: r.initial && r.post ? String(r.initial.confidence !== r.post.confidence) : "",
+            helpful_heatmap_choices: helpful.choices,
+            helpful_heatmap_slots: helpful.slots,
+            helpful_heatmap_labels: helpful.labels,
+            helpful_heatmap_model_ids: helpful.modelIds,
+            helpful_heatmap_none_selected: helpful.noneSelected,
+            helpful_heatmap_count: helpful.count,
+            heatmap_slot_1_model_id: slots[0].modelId,
+            heatmap_slot_1_src: slots[0].src,
+            heatmap_slot_2_model_id: slots[1].modelId,
+            heatmap_slot_2_src: slots[1].src,
+            heatmap_slot_3_model_id: slots[2].modelId,
+            heatmap_slot_3_src: slots[2].src,
+            completed: String(Boolean(r.post))
+          };
+          labelColumns.forEach(item => {
+            row[`initial_has_${item.column}`] = r.initial ? String(initialDiagnosisSet.has(item.label)) : "";
+            row[`post_has_${item.column}`] = r.post ? String(postDiagnosisSet.has(item.label)) : "";
+            row[`changed_${item.column}`] = r.initial && r.post ? String(initialDiagnosisSet.has(item.label) !== postDiagnosisSet.has(item.label)) : "";
+          });
+          rows.push(row);
+        });
+        return rows;
+      }
+
+      function exportCsv() {
+        const rows = buildRows();
+        if (!rows.length) return;
+        const headers = Object.keys(rows[0]);
+        const lines = [headers.join(",")].concat(rows.map(row => headers.map(h => csvCell(row[h])).join(",")));
+        const file = `${safeFileName(state.participant.participantId)}_${safeFileName(state.studyId)}_responses.csv`;
+        downloadText(file, lines.join("\n"), "text/csv;charset=utf-8");
+      }
+
+      function exportJson() {
+        const file = `${safeFileName(state.participant.participantId)}_${safeFileName(state.studyId)}_responses.json`;
+        const exportState = JSON.parse(JSON.stringify(state));
+        delete exportState.appVersion;
+        const payload = {
+          exportedAt: nowIso(),
+          configSummary: {
+            studyId: CONFIG.studyId || "default_study",
+            studyTitle: CONFIG.studyTitle || "CXR Heatmap Reader Study",
+            numberOfCases: (CONFIG.cases || []).length,
+            randomizeCaseOrder: CONFIG.randomizeCaseOrder !== false,
+            randomizeHeatmapOrder: CONFIG.randomizeHeatmapOrder !== false,
+            askHelpfulHeatmaps: shouldAskHelpfulHeatmaps(),
+            diagnosisMode: "multi-label",
+            diagnosisExclusiveLabels: Array.from(getDiagnosisExclusiveLabels()),
+            confidenceLevels: CONFIDENCE_LEVELS,
+            labels: CONFIG.labels || []
+          },
+          state: exportState,
+          rows: buildRows()
+        };
+        downloadText(file, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+      }
+
+      function csvCell(value) {
+        const s = String(value ?? "");
+        return `"${s.replaceAll('"', '""')}"`;
+      }
+
+      function safeFileName(value) {
+        return String(value || "reader").replace(/[^a-z0-9_\-]+/gi, "_").replace(/^_+|_+$/g, "").slice(0, 80) || "reader";
+      }
+
+      function downloadText(filename, text, mime) {
+        const blob = new Blob([text], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>
