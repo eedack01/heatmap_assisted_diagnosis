@@ -57,7 +57,10 @@ heatmap-generation runs.
 
 The final Grad-CAM heatmaps used in the reader study, split by dataset
 (`chestdr/`, `vindr/`) and then by model (`ark/`, `eva/`, `raddino/`, plus `raw/`
-for the unannotated source images), with a per-model CSV of case-level info.
+for the unannotated source images), with a per-model CSV of case-level info. Each
+CSV's `image_id` column is the original dataset ID (e.g. `final/vindr/ark_vindr.csv`
+uses the original VinDr-CXR `image_id`), so heatmaps can be matched back to the
+source dataset via that column.
 
 ### `cxr_heatmap_reader_app/`
 
