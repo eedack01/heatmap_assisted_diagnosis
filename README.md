@@ -71,3 +71,17 @@ from all three models and gives a second diagnosis, confidence rating, and
 heatmap-helpfulness rating. Includes the case manifest, image assets,
 `tools/make_manifest.py` to regenerate the manifest from a results CSV, and a
 `Radiologist_Quick_Start_Manual.txt` for study participants.
+
+## Citation
+
+If you find this work useful please cite us :)
+
+```bibtex
+@article {Dack2026.08.20.26360908,
+	author = {Dack, Ethan and Dai, Chengliang and Hoppe, Hanno and Kr{\"u}selmann, Paula and Meiler, Stefanie and Jutidamrongphan, Warissara and Wang, Ling and Tang, Kun},
+	title = {Towards Interpretable AI Second Opinions: Foundation Model Heatmaps in Radiology},
+	year = {2026},
+	doi = {10.64898/2026.08.20.26360908},
+	journal = {medRxiv}
+}
+```
